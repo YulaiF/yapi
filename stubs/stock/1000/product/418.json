@@ -1,0 +1,10 @@
+{
+  "state": true,
+  "data": {
+    "id": 100,
+    "quantity": 10,
+    "price": 3753.86,
+    "available": true
+  },
+  "error": {}
+}

@@ -1,0 +1,64 @@
+
+<IfModule mod_rewrite.c>
+    # Включение модуля RewriteEngine для обработки правил перезаписи
+    RewriteEngine On
+    #RewriteBase /yapi
+
+     # Запрет доступа к конфигурационным файлам
+    <FilesMatch "^(config\.php|config\.inc\.php|config\.ini|settings\.php)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+
+
+    # Отключение отображения серверной подписи в ответах сервера
+    ServerSignature Off
+
+    # Проверки безопасности:
+    # Проверка наличия определенных методов запроса (HEAD, TRACE, DELETE, TRACK)
+    RewriteCond %{REQUEST_METHOD} ^(HEAD|TRACE|DELETE|TRACK|OPTIONS) [NC,OR]
+    # Проверка наличия специфических символов в запросе (новые строки и т.д.)
+    RewriteCond %{THE_REQUEST} (\\r|\\n|%0A|%0D) [NC,OR]
+    # Проверка наличия определенных символов в HTTP_REFERER
+    RewriteCond %{HTTP_REFERER} (<|>|’|%0A|%0D|%27|%3C|%3E|%00) [NC,OR]
+    # Проверка наличия определенных символов в HTTP_COOKIE
+    RewriteCond %{HTTP_COOKIE} (<|>|’|%0A|%0D|%27|%3C|%3E|%00) [NC,OR]
+    # Проверка наличия определенных символов в REQUEST_URI
+    RewriteCond %{REQUEST_URI} ^/(,|;|:|<|>|”>|”<|/|\\\.\.\\).{0,9999} [NC,OR]
+    # Проверка наличия определенных символов в HTTP_USER_AGENT
+    RewriteCond %{HTTP_USER_AGENT} ^$ [OR]
+    RewriteCond %{HTTP_USER_AGENT} ^(java|curl|wget) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} (winhttp|HTTrack|clshttp|archiver|loader|email|harvest|extract|grab|miner) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} (libwww-perl|curl|wget|python|nikto|scan) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} ({|}|<|>|’|%0A|%0D|%27|%3C|%3E|%00) [NC,OR]
+
+    # Блокировка запросов, содержащих потенциальные угрозы (SQL инъекции)
+    RewriteCond %{QUERY_STRING} (;|<|>|’|”|\)|%0A|%0D|%22|%27|%3C|%3E|%00).*(/\*|union|select|insert|cast|set|declare|drop|update|md5|benchmark) [NC,OR]
+    RewriteCond %{QUERY_STRING} \.\./\.\. [OR]
+    RewriteCond %{QUERY_STRING} (localhost|loopback|127\.0\.0\.1) [NC,OR]
+    RewriteCond %{QUERY_STRING} \.ht [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|>|’|%0A|%0D|%27|%3C|%3E|%00) [NC]
+
+    # Правило перезаписи: Если запрашиваемый файл  или директория не существует
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+     # Разрешаем доступ к index.php
+    RewriteRule ^index\.php$ - [L]
+    #RewriteRule ^ - [L]
+
+    # Перезапись всех запросов на index.php с параметром yapirequest, содержащим путь запроса
+    RewriteRule ^(.+)$ index.php?yapirequest=$1 [L,QSA]
+    # ^(.+)$ - шаблон для захвата всего пути после домена, $1 - переменная с захваченным значением
+    # [L] - последнее правило, если совпадение найдено, прекратить обработку
+    # [QSA] - добавить к запросу строки запроса из оригинального запроса
+
+    # Если выполнение всех предыдущих условий, возвращаем ошибку 403 Forbidden
+    RewriteRule .* /yapi/routers/error.php [F]
+
+</IfModule>
+
+
+# Перехват ошибок
+ErrorDocument 403 /yapi/routers/error.php?code=403
+ErrorDocument 500 /yapi/routers/error.php?code=500
+
